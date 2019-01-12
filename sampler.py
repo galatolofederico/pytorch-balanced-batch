@@ -1,38 +1,43 @@
 import torch
 import torchvision
 import torch.utils.data
+import random
 
 class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
     def __init__(self, dataset):
-        self.dataset = dataset
+        self.dataset = {}
+        self.balanced_max = 0
+        # Save all the indices for all the classes
+        for idx in range(0, len(dataset)):
+            label = self._get_label(dataset, idx)
+            if label not in self.dataset:
+                self.dataset[label] = []
+            self.dataset[label].append(idx)
+            self.balanced_max = len(self.dataset[label]) \
+                if len(self.dataset[label]) > self.balanced_max else self.balanced_max
+        
+        # Oversample the classes with fewer elements than the max
+        for label in self.dataset:
+            while len(self.dataset[label]) < self.balanced_max:
+                self.dataset[label].append(random.choice(self.dataset[label]))
+    
+        self.keys = list(self.dataset.keys())
+        self.currentkey = 0
 
     def __iter__(self):
-        idx = 0
-        counter = {}
-        sampled = 0
-        while sampled < len(self.dataset):
-            label = self._get_label(idx)
-            if label not in counter:
-                counter[label] = 0
-            
-            # always sample the class with fewer samples sampled
-            min_label = min(counter.items(), key=lambda x: x[1])[0]
+        while len(self.dataset[self.keys[self.currentkey]]) > 0:
+            yield self.dataset[self.keys[self.currentkey]].pop()
+            self.currentkey = (self.currentkey + 1) % len(self.keys)
 
-            if label == min_label:
-                counter[label] += 1
-                sampled += 1
-                yield idx
-
-            idx = (idx + 1) % len(self.dataset)
     
-    def _get_label(self, idx):
-        dataset_type = type(self.dataset)
+    def _get_label(self, dataset, idx):
+        dataset_type = type(dataset)
         if dataset_type is torchvision.datasets.MNIST:
-            return self.dataset.train_labels[idx].item()
+            return dataset.train_labels[idx].item()
         elif dataset_type is torchvision.datasets.ImageFolder:
-            return self.dataset.imgs[idx][1]
+            return dataset.imgs[idx][1]
         else:
             raise NotImplementedError
 
     def __len__(self):
-        return len(self.dataset)
+        return self.balanced_max*len(self.keys)
