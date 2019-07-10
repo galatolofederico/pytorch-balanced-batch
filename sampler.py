@@ -23,12 +23,14 @@ class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
                 self.dataset[label].append(random.choice(self.dataset[label]))
         self.keys = list(self.dataset.keys())
         self.currentkey = 0
+        self.indices = [-1]*len(self.keys)
 
     def __iter__(self):
-        while len(self.dataset[self.keys[self.currentkey]]) > 0:
-            yield self.dataset[self.keys[self.currentkey]].pop()
+        while self.indices[self.currentkey] < self.balanced_max - 1:
+            self.indices[self.currentkey] += 1
+            yield self.dataset[self.keys[self.currentkey]][self.indices[self.currentkey]]
             self.currentkey = (self.currentkey + 1) % len(self.keys)
-
+        self.indices = [-1]*len(self.keys)
     
     def _get_label(self, dataset, idx, labels = None):
         if self.labels is not None:
