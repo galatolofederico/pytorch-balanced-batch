@@ -1,5 +1,9 @@
 import torch
-import torchvision
+is_torchvision_installed = True
+try:
+    import torchvision
+except:
+    is_torchvision_installed = False
 import torch.utils.data
 import random
 
@@ -38,9 +42,9 @@ class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
         else:
             # Trying guessing
             dataset_type = type(dataset)
-            if dataset_type is torchvision.datasets.MNIST:
+            if is_torchvision_installed and dataset_type is torchvision.datasets.MNIST:
                 return dataset.train_labels[idx].item()
-            elif dataset_type is torchvision.datasets.ImageFolder:
+            elif is_torchvision_installed and dataset_type is torchvision.datasets.ImageFolder:
                 return dataset.imgs[idx][1]
             else:
                 raise Exception("You should pass the tensor of labels to the constructor as second argument")
