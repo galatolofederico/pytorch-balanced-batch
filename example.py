@@ -11,8 +11,8 @@ dataset_Y = torch.distributions.categorical.Categorical(classes_prob.repeat(size
 
 dataset = torch.utils.data.TensorDataset(dataset_X, dataset_Y)
 
-train_loader = torch.utils.data.DataLoader(dataset, sampler=BalancedBatchSampler(dataset, dataset_Y), batch_size=6)
+train_loader = torch.utils.data.DataLoader(dataset, sampler=BalancedBatchSampler(dataset, dataset_Y, labels_ratio=[1,2,1]), batch_size=6)
 
 for epoch in range(0, epochs):
     for batch_x, batch_y in train_loader:
-        print("epoch: %d labels: %s\ninputs: %s\n" % (epoch, batch_y, batch_x))
+        print("epoch: %d labels: %s\n" % (epoch, batch_y))

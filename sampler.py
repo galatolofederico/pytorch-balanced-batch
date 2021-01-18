@@ -8,8 +8,9 @@ import torch.utils.data
 import random
 
 class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
-    def __init__(self, dataset, labels=None):
+    def __init__(self, dataset, labels=None, labels_ratio=None):
         self.labels = labels
+        self.labels_ratio = labels_ratio
         self.dataset = dict()
         self.balanced_max = 0
         # Save all the indices for all the classes
@@ -21,18 +22,23 @@ class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
             self.balanced_max = len(self.dataset[label]) \
                 if len(self.dataset[label]) > self.balanced_max else self.balanced_max
         
+        if self.labels_ratio is None: self.labels_ratio = [1]*len(self.labels)
+
         # Oversample the classes with fewer elements than the max
-        for label in self.dataset:
-            while len(self.dataset[label]) < self.balanced_max:
+        for label, ratio in zip(self.dataset, self.labels_ratio):
+            while len(self.dataset[label]) < self.balanced_max * ratio:
                 self.dataset[label].append(random.choice(self.dataset[label]))
         self.keys = list(self.dataset.keys())
         self.currentkey = 0
         self.indices = [-1]*len(self.keys)
 
+        assert len(self.labels_ratio) == len(self.keys), "You have to specify a ratio for each label"
+
     def __iter__(self):
-        while self.indices[self.currentkey] < self.balanced_max - 1:
+        while self.indices[self.currentkey] < self.labels_ratio[self.currentkey]*self.balanced_max - 1:
             self.indices[self.currentkey] += 1
-            yield self.dataset[self.keys[self.currentkey]][self.indices[self.currentkey]]
+            for _ in range(0, self.labels_ratio[self.currentkey]):
+                yield self.dataset[self.keys[self.currentkey]][self.indices[self.currentkey]]
             self.currentkey = (self.currentkey + 1) % len(self.keys)
         self.indices = [-1]*len(self.keys)
     
