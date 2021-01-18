@@ -36,8 +36,8 @@ class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
 
     def __iter__(self):
         while self.indices[self.currentkey] < self.labels_ratio[self.currentkey]*self.balanced_max - 1:
-            self.indices[self.currentkey] += 1
             for _ in range(0, self.labels_ratio[self.currentkey]):
+                self.indices[self.currentkey] += 1
                 yield self.dataset[self.keys[self.currentkey]][self.indices[self.currentkey]]
             self.currentkey = (self.currentkey + 1) % len(self.keys)
         self.indices = [-1]*len(self.keys)
